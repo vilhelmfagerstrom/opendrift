@@ -114,7 +114,7 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Vertical mixing is enabled by default
         self.set_config('drift:vertical_mixing', True)
 
-    def update_terminal_velocity(self, z_index=None):
+    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
         """Calculate terminal velocity for larvae
 
         """
@@ -145,8 +145,7 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         W = np.interp(self.elements.competence, idd, w_idd)
 
-        print(w)
-        self.elements.terminal_velocity = W
+        self.elements.terminal_velocity = W * np.sign(self.time_step.total_seconds())
 
     def update(self):
         """Update positions and properties of particles."""
