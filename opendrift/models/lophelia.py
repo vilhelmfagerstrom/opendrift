@@ -33,9 +33,6 @@ class LopheliaLarvae(Lagrangian3DArray):
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 1028.}),
-        ('age_seconds', {'dtype': np.float32,
-                         'units': 's',
-                         'default': 0.}),
         ('competence', {'dtype': np.float32,
                          'units': 's',
                          'default': 0.}),
@@ -45,20 +42,13 @@ class LopheliaLarvae(Lagrangian3DArray):
 
 class LopheliaLarvaeDrift(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
-
         Developed at MET Norway
-
         Generic module for particles that are subject to vertical turbulent
         mixing with the possibility for positive or negative buoyancy
-
         Lophelia larvae assumed to ber neutrally buoyant throughout
-
         Particles could be e.g. oil droplets, plankton, or sediments
-
         Under construction.
     """
-
-
 
     ElementType = LopheliaLarvae
 
@@ -114,9 +104,8 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Vertical mixing is enabled by default
         self.set_config('drift:vertical_mixing', True)
 
-    def update_terminal_velocity(self, z_index=None):
+    def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
         """Calculate terminal velocity for larvae
-
         """
         g = 9.81  # ms-2
 
@@ -145,17 +134,13 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         W = np.interp(self.elements.competence, idd, w_idd)
 
-        print(W)
-        self.elements.terminal_velocity = W
+        self.elements.terminal_velocity = W * np.sign(self.time_step.total_seconds())
 
     def update(self):
         """Update positions and properties of particles."""
 
         # Stokes drift
         self.stokes_drift()
-
-        # Update element age
-        self.elements.age_seconds += self.time_step.total_seconds()
 
         # Update competence
         self.elements.competence += self.time_step.total_seconds() * self.environment.sea_water_temperature
