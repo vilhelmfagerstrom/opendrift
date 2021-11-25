@@ -145,7 +145,7 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         W = np.interp(self.elements.competence, idd, w_idd)
 
-        print(w)
+        print(W)
         self.elements.terminal_velocity = W
 
     def update(self):
