@@ -38,7 +38,10 @@ class LopheliaLarvae(Lagrangian3DArray):
                          'default': 0.}),
         ('hatched', {'dtype': np.float32,
                      'units': '',
-                     'default': 0.})])
+                     'default': 0.}),
+        ('temperature_degC', {'dtype': np.float32,
+                            'units': '',
+                            'default': 0.})])
 
 class LopheliaLarvaeDrift(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
@@ -145,6 +148,9 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Update competence
         self.elements.competence += self.time_step.total_seconds() * self.environment.sea_water_temperature
 
+        # Update temperature
+        self.elements.temperature_degC = self.environment.sea_water_temperature
+
         # Turbulent Mixing
         self.update_terminal_velocity()
         self.vertical_mixing()
@@ -161,5 +167,5 @@ class LopheliaLarvaeDrift(OceanDrift):
             self.deactivate_elements(self.elements.competence <= 0., reason='spawned')
 
         if self.time_step.total_seconds() > 0:
-            self.deactivate_elements(self.elements.competence > 21.*24*3600* self.reftemp & self.elements.z < -sea_floor_depth, reason='settled')
-            self.deactivate_elements(self.elements.competence > 60.*24*3600* self.reftemp , reason='died')
+            self.deactivate_elements((self.elements.competence > 21.*24*3600*self.reftemp) & (self.elements.z < -self.sea_floor_depth()), reason='settled')
+            self.deactivate_elements(self.elements.competence > 60.*24*3600*self.reftemp , reason='died')
