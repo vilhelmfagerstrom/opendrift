@@ -38,10 +38,7 @@ class LopheliaLarvae(Lagrangian3DArray):
                          'default': 0.}),
         ('hatched', {'dtype': np.float32,
                      'units': '',
-                     'default': 0.}),
-        ('temperature_degC', {'dtype': np.float32,
-                            'units': '',
-                            'default': 0.})])
+                     'default': 0.})])
 
 class LopheliaLarvaeDrift(OceanDrift):
     """Buoyant particle trajectory model based on the OpenDrift framework.
@@ -147,9 +144,6 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         # Update competence
         self.elements.competence += self.time_step.total_seconds() * self.environment.sea_water_temperature
-
-        # Update temperature
-        self.elements.temperature_degC = self.environment.sea_water_temperature
 
         # Turbulent Mixing
         self.update_terminal_velocity()
