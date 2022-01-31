@@ -122,43 +122,21 @@ class LopheliaLarvaeDrift(OceanDrift):
         #eggsalinity = self.elements.neutral_buoyancy_salinity
 
 
-	    # Set vertical velocities depending on stage (age) in larval phase:
-        scenario = 'short' # Set scenario, 'short' or 'long' depending on length of pre-competency period
+	    # Set parameters for vertical velocities depending on stage (age) in larval phase:
         sday = 24*60*60 # Seconds in one day
-        self.reftemp = 8 # degree C
+        reftemp = 8 # Reference temperature
+        t_wsmax = 14*24 # Age in hours at which maximum vertical velocity is reached at reftemp
+        t1 = 713.08*reftemp**-1.149 # Age in hours at which first cilia appear at reftemp
+        t2 = 4560.17*reftemp**-1.081 # Age in hours at which first cnidocysts appear at reftemp
 
-        # Setting length of pre-competency period [days] at reference temperature 8 degrees C
-        if scenario == 'short':
-            dup2dwn = 21
-        elif scenario == 'long':
-    	    dup2dwn = 42
-
-        # 1D array of days corresponding to known vertical swimming velocities at reference temperature
-        idd = np.arange(15, dtype=float)
-        idd = np.insert(idd, [5, 7, 8], [5-self.time_step.total_seconds()/sday,6+self.time_step.total_seconds()/sday, 7+self.time_step.total_seconds()/sday])
-
-        idd = np.append(idd, [dup2dwn, dup2dwn+1-self.time_step.total_seconds()/sday, dup2dwn+1])
-        idd = idd-5 # Shifting 0 to index 5
-
-        # 1D array with fractions of times in array idd, with respect to development stages
-        # Development stage 1 begins when first cilia appear and upwards swimming starts
-        # Development stage 2 begins when first cnidosysts appear and downwards swimming starts
-        dfrac = (idd/(idd[-1]))+1
-        dfrac = dfrac[5:]
-
-        # 1D array with known vertical velocities at times [days] in array idd
-        w_idd = np.array([0.00005, 0.0002, 0.00025, 0, 0, 0, 0.0003, 0.00035, 0.0004, 0.00045, 0.0005, 0.00055, 0.0006, 0.0006, 0.0006, -0.0006])
-        # 1D array with fractions of maximum vertical swimming velocity
-        w_idd_frac = w_idd/w_idd[-2]
-
-        # Interpolate maximum vertical velocities into development level of larvae
-        W_frac = np.interp(self.elements.devlev, dfrac, w_idd_frac)
-
-        # Calculate temperature dependent vertical (swimming) velocities
-        W_T = ((0.002833*(self.environment.sea_water_temperature**2))+(-0.02398*self.environment.sea_water_temperature)+(0.3137))*W_frac*0.001
+        # Development stage at which maximum vertical velocity is reached
+        devlev_wsmax = 1+(t_wsmax-t1)/t2
 
         # Terminal velocity depending on forward or backward simulation
-        self.elements.terminal_velocity = W_T * np.sign(self.time_step.total_seconds())
+        self.elements.terminal_velocity[(self.elements.devlev < 1)] = 0
+        self.elements.terminal_velocity[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)] = 1e-3*(0.002833*self.environment.sea_water_temperature[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)]**2-0.02398*self.environment.sea_water_temperature[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)]+0.3137)*(t2*(self.elements.devlev[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)]-1)/(t_wsmax-t1))*np.sign(self.time_step.total_seconds())
+        self.elements.terminal_velocity[(self.elements.devlev >= devlev_wsmax) & (self.elements.devlev < 2)] = 1e-3*(0.002833*self.environment.sea_water_temperature[(self.elements.devlev >= devlev_wsmax) & (self.elements.devlev < 2)]**2-0.02398*self.environment.sea_water_temperature[(self.elements.devlev >= devlev_wsmax) & (self.elements.devlev < 2)]+0.3137)*np.sign(self.time_step.total_seconds())
+        self.elements.terminal_velocity[(self.elements.devlev >= 2)] = -1e-3*(0.002833*self.environment.sea_water_temperature[(self.elements.devlev >= 2)]**2-0.02398*self.environment.sea_water_temperature[(self.elements.devlev >= 2)]+0.3137)*np.sign(self.time_step.total_seconds())
 
 
     def update(self):
@@ -172,8 +150,7 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         # Update development level
         self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(713.08*3600*(self.environment.sea_water_temperature[(self.elements.devstage == 0)]**-1.149)))
-        self.elements.devlev[(self.elements.devstage == 1)] += self.time_step.total_seconds()*(1/(4560.17*3600*(self.environment.sea_water_temperature[(self.elements.devstage == 1)]**-1.081)))
-        self.elements.devlev[(self.elements.devstage == 2)] += (self.time_step.total_seconds()/(24*60*60))*self.environment.sea_water_temperature[(self.elements.devstage == 2)]
+        self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(4560.17*3600*(self.environment.sea_water_temperature[(self.elements.devstage >= 1)]**-1.081)))
 
         # Update development stage
         self.elements.devstage[(self.elements.devlev >= 1)] = 1
@@ -192,9 +169,9 @@ class LopheliaLarvaeDrift(OceanDrift):
             self.vertical_advection()
 
         if self.time_step.total_seconds() < 0:
-            self.deactivate_elements(self.elements.competence <= 0., reason='spawned')
+            self.deactivate_elements(self.elements.devlev <= 0., reason='spawned')
 
         if self.time_step.total_seconds() > 0:
-            self.deactivate_elements((self.elements.competence > 21.*24*3600*self.reftemp) & (self.elements.z < -self.sea_floor_depth()), reason='settled')
-            self.deactivate_elements(self.elements.competence > 60.*24*3600*self.reftemp , reason='died')
+            self.deactivate_elements((self.elements.devlev >= 2) & (self.elements.z < -self.sea_floor_depth()), reason='settled')
+            self.deactivate_elements(self.elements.devlev >= 4 , reason='died')
             self.deactivate_elements(self.environment.sea_water_temperature <= 0 , reason='died')
