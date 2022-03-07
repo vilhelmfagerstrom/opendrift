@@ -20,6 +20,17 @@ import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 #from opendrift.elements import LagrangianArray
 
+# Temperature dependence of develpoment rate ON(1) or OFF(0)
+global tempdepdev
+tempdepdev = 1
+
+# Temperature dependence of vertical swimming ON(1) or OFF(0
+global tempdepws
+tempdepws = 1
+
+# Set temperature for temperature INDEPENDENT simulation
+global settemp
+settemp = 8
 
 # Defining element properties
 class LopheliaLarvae(Lagrangian3DArray):
@@ -33,9 +44,6 @@ class LopheliaLarvae(Lagrangian3DArray):
         ('density', {'dtype': np.float32,
                      'units': 'kg/m^3',
                      'default': 1028.}),
-        ('competence', {'dtype': np.float32,
-                         'units': 's',
-                         'default': 0.}),
         ('devlev', {'dtype': np.float32,
                          'units': '',
                          'default': 0.}),
@@ -115,12 +123,6 @@ class LopheliaLarvaeDrift(OceanDrift):
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
         """Calculate terminal velocity for larvae
         """
-        g = 9.81  # ms-2
-
-        # Properties that determine element buoyancy
-        larvaesize = self.elements.diameter  # 0.0002 for Lophelia
-        #eggsalinity = self.elements.neutral_buoyancy_salinity
-
 
 	    # Set parameters for vertical velocities depending on stage (age) in larval phase:
         sday = 24*60*60 # Seconds in one day
@@ -132,25 +134,48 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Development stage at which maximum vertical velocity is reached
         devlev_wsmax = 1+(t_wsmax-t1)/t2
 
-        # Terminal velocity depending on forward or backward simulation
-        self.elements.terminal_velocity[(self.elements.devlev < 1)] = 0
-        self.elements.terminal_velocity[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)] = 1e-3*(0.002833*self.environment.sea_water_temperature[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)]**2-0.02398*self.environment.sea_water_temperature[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)]+0.3137)*(t2*(self.elements.devlev[(self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)]-1)/(t_wsmax-t1))*np.sign(self.time_step.total_seconds())
-        self.elements.terminal_velocity[(self.elements.devlev >= devlev_wsmax) & (self.elements.devlev < 2)] = 1e-3*(0.002833*self.environment.sea_water_temperature[(self.elements.devlev >= devlev_wsmax) & (self.elements.devlev < 2)]**2-0.02398*self.environment.sea_water_temperature[(self.elements.devlev >= devlev_wsmax) & (self.elements.devlev < 2)]+0.3137)*np.sign(self.time_step.total_seconds())
-        self.elements.terminal_velocity[(self.elements.devlev >= 2)] = -1e-3*(0.002833*self.environment.sea_water_temperature[(self.elements.devlev >= 2)]**2-0.02398*self.environment.sea_water_temperature[(self.elements.devlev >= 2)]+0.3137)*np.sign(self.time_step.total_seconds())
+        # Coefficients for equations:
+        aT = 0.1547
+        bT = 0.08893
 
+        # Indicies for development levels/stages for swimming behavior
+        ind_Devst0 = self.elements.devlev < 1
+        ind_Devst1_1 = (self.elements.devlev >= 1) & (self.elements.devlev < devlev_wsmax)
+        ind_Devst1_2 = (self.elements.devlev >= devlev_wsmax) & (self.elements.devlev < 2)
+        ind_Devst2 = self.elements.devlev >= 2
+
+        if tempdepws == 1:
+            # Temperature DEPENDENT terminal velocity
+            self.elements.terminal_velocity[ind_Devst0] = 0
+            self.elements.terminal_velocity[ind_Devst1_1] = 1e-3*(aT*np.exp(bT*self.environment.sea_water_temperature[ind_Devst1_1]))*(t2*(self.elements.devlev[ind_Devst1_1]-1)/(t_wsmax-t1))*np.sign(self.time_step.total_seconds())
+            self.elements.terminal_velocity[ind_Devst1_2] = 1e-3*(aT*np.exp(bT*self.environment.sea_water_temperature[ind_Devst1_2]))*np.sign(self.time_step.total_seconds())
+            self.elements.terminal_velocity[ind_Devst2] = -1e-3*(aT*np.exp(bT*self.environment.sea_water_temperature[ind_Devst2]))*np.sign(self.time_step.total_seconds())
+
+        elif tempdepws == 0:
+            # Temperature INDEPENDENT terminal velocity
+            self.elements.terminal_velocity[ind_Devst0] = 0
+            self.elements.terminal_velocity[ind_Devst1_1] = 1e-3*(aT*np.exp(bT*settemp))*(t2*(self.elements.devlev[ind_Devst1_1]-1)/(t_wsmax-t1))*np.sign(self.time_step.total_seconds())
+            self.elements.terminal_velocity[ind_Devst1_2] = 1e-3*(aT*np.exp(bT*settemp))*np.sign(self.time_step.total_seconds())
+            self.elements.terminal_velocity[ind_Devst2] = -1e-3*(aT*np.exp(bT*settemp))*np.sign(self.time_step.total_seconds())
 
     def update(self):
         """Update positions and properties of particles."""
 
-        # Stokes drift
-        self.stokes_drift()
+        # Coefficients for equations:
+        aDevst0 = 713.08*3600
+        bDevst0 = -1.149
 
-        # Update competence (Not to use)
-        self.elements.competence += self.time_step.total_seconds() * self.environment.sea_water_temperature
+        aDevst1 = 4560.17*3600
+        bDevst1 = -1.081
 
-        # Update development level
-        self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(713.08*3600*(self.environment.sea_water_temperature[(self.elements.devstage == 0)]**-1.149)))
-        self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(4560.17*3600*(self.environment.sea_water_temperature[(self.elements.devstage >= 1)]**-1.081)))
+        if tempdepdev == 1:
+            # Update temperature DEPENDENT development level
+            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*(self.environment.sea_water_temperature[(self.elements.devstage == 0)]**bDevst0)))
+            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*(self.environment.sea_water_temperature[(self.elements.devstage >= 1)]**bDevst1)))
+
+        elif tempdepdev == 0:            # Update temperature INDEPENDENT development level
+            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(713.08*3600*(settemp**-1.149)))
+            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(4560.17*3600*(settemp**-1.081)))
 
         # Update development stage
         self.elements.devstage[(self.elements.devlev >= 1)] = 1
