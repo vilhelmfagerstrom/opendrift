@@ -20,6 +20,8 @@ import logging; logger = logging.getLogger(__name__)
 from opendrift.models.oceandrift import OceanDrift, Lagrangian3DArray
 #from opendrift.elements import LagrangianArray
 
+#--------- Set parameters for simulation ---------
+
 # Temperature dependence of develpoment rate ON(1) or OFF(0)
 global tempdepdev
 tempdepdev = 1
@@ -31,6 +33,8 @@ tempdepws = 1
 # Set temperature for temperature INDEPENDENT simulation
 global settemp
 settemp = 8
+
+#-------------------------------------------------
 
 # Defining element properties
 class LopheliaLarvae(Lagrangian3DArray):
@@ -130,6 +134,10 @@ class LopheliaLarvaeDrift(OceanDrift):
         t_wsmax = 14*24 # Age in hours at which maximum vertical velocity is reached at reftemp
         t1 = 713.08*reftemp**-1.149 # Age in hours at which first cilia appear at reftemp
         t2 = 4560.17*reftemp**-1.081 # Age in hours at which first cnidocysts appear at reftemp
+        tmax = 90*24 # Maximum age in hours at reftemp
+
+        global devlev_tmax
+        devlev_tmax = 1+(tmax-t1)/t2 # Develpoment level at tmax
 
         # Development stage at which maximum vertical velocity is reached
         devlev_wsmax = 1+(t_wsmax-t1)/t2
@@ -162,20 +170,20 @@ class LopheliaLarvaeDrift(OceanDrift):
         """Update positions and properties of particles."""
 
         # Coefficients for equations:
-        aDevst0 = 713.08*3600
-        bDevst0 = -1.149
+        aDevst0 = 250*3600
+        bDevst0 = -0.1509
 
-        aDevst1 = 4560.17*3600
-        bDevst1 = -1.081
+        aDevst1 = 2071*3600
+        bDevst1 = -0.1637
 
         if tempdepdev == 1:
             # Update temperature DEPENDENT development level
-            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*(self.environment.sea_water_temperature[(self.elements.devstage == 0)]**bDevst0)))
-            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*(self.environment.sea_water_temperature[(self.elements.devstage >= 1)]**bDevst1)))
+            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*self.environment.sea_water_temperature[(self.elements.devstage == 0)])))
+            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*np.exp(bDevst1*self.environment.sea_water_temperature[(self.elements.devstage >= 1)])))
 
         elif tempdepdev == 0:            # Update temperature INDEPENDENT development level
-            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(713.08*3600*(settemp**-1.149)))
-            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(4560.17*3600*(settemp**-1.081)))
+            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*settemp)))
+            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*np.exp(bDevst1*settemp)))
 
         # Update development stage
         self.elements.devstage[(self.elements.devlev >= 1)] = 1
@@ -198,5 +206,5 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         if self.time_step.total_seconds() > 0:
             self.deactivate_elements((self.elements.devlev >= 2) & (self.elements.z < -self.sea_floor_depth()), reason='settled')
-            self.deactivate_elements(self.elements.devlev >= 4 , reason='died')
-            self.deactivate_elements(self.environment.sea_water_temperature <= 0 , reason='died')
+            self.deactivate_elements(self.elements.devlev >= devlev_tmax , reason='died')
+            self.deactivate_elements((self.elements.devlev < 1)& (self.environment.sea_water_temperature <= 4) , reason='died')
