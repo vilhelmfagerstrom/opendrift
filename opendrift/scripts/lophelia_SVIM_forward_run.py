@@ -43,7 +43,7 @@ tstep_out = 3*3600
 
 #-------Read model data and run simulation -------
 datestr_out = str(date(ys, ms, ds))
-log_fname = '/media/vilhelm/LaCie/Data/OpenDrift/Output/lophelia_SVIM_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.log'
+log_fname = '/media/vilhelm/LaCie/OpenDrift/Output/2022/lophelia_SVIM_seedingBeryl_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.log'
 o = LopheliaLarvaeDrift(loglevel=0, logfile=log_fname)
 
 # Reader for SVIM model data (thredds server):
@@ -53,7 +53,7 @@ reader_SVIM_daily_agg = reader_ROMS_native.Reader('https://thredds.met.no/thredd
 reader_SVIM_MLD = reader_ROMS_native.Reader('https://thredds.met.no/thredds/dodsC/nansen-legacy-ocean/svim_daily_mld_agg')
 
 # Reader for atmospheric forcing file (local):
-reades_atm_forc  = reader_ROMS_SVIMforcing.Reader('/media/vilhelm/LaCie/Data/SVIM_forcing/yearly_files/ocean_force_2012.nc')
+reades_atm_forc  = reader_ROMS_SVIMforcing.Reader('/home/vilhelm/Data/SVIM/forcing/yearly_files/ocean_force_'+str(ys)+'.nc')
 
 # Add data readers:
 o.add_reader([reader_SVIM_daily_agg, reader_SVIM_MLD, reades_atm_forc])
@@ -78,7 +78,7 @@ o.set_config('general:use_auto_landmask', False)
 o.set_config('vertical_mixing:timestep', 60.) # seconds
 
 # Output file name:
-outname = '/media/vilhelm/LaCie/Data/OpenDrift/Output/seedingBeryl_tempdepdev1_tempdepws1_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.nc'
+outname = '/media/vilhelm/LaCie/OpenDrift/Output/2022/seedingBeryl_tempdepdev1_tempdepws1_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.nc'
 
 # Run model:
 o.run(duration=timedelta(days=tsim), time_step=tstep, time_step_output=tstep, outfile=outname)
