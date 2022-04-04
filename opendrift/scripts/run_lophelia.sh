@@ -23,13 +23,13 @@ zs=95
 ns=1000
 
 # Length of simulation [days]:
-tsim=5
+tsim=300
 
 #--------- Loop over seeding days ---------
 
 #for loop to run script
 for a in "${ds[@]}"
 do
-  python lophelia_SVIM_forward_run_test_1.py $ys $ms "$a" $hs $mms $lats $lons $radis $zs $ns $tsim
+  python lophelia_SVIM_forward_run.py $ys $ms "$a" $hs $mms $lats $lons $radis $zs $ns $tsim
   echo "Simulation for seeding on day $a done"
 done
