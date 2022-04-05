@@ -5,7 +5,7 @@
 
 ys=2012             # Year/s of particle seeding
 ms=2                # Month/s of particle seeding
-ds=($(seq 1 1 10))  # Day/s of particle seeding
+ds=($(seq 1 1 2))  # Day/s of particle seeding
 hs=12               # Hour of particle seeding
 mms=0               # Minute of particle seeding
 
