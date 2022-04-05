@@ -39,11 +39,11 @@ tsim = int(sys.argv[11])
 tstep = 3600
 
 # Length [s] of output timestep:
-tstep_out = 3*3600
+tstep_out = 24*3600
 
 #-------Read model data and run simulation -------
 datestr_out = str(date(ys, ms, ds))
-log_fname = '/media/vilhelm/LaCie/OpenDrift/Output/2022/lophelia_SVIM_seedingBeryl_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.log'
+log_fname = '/home/vilhelm/Data/OpenDrift/Logs/lophelia_SVIM_seedingBeryl_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.log'
 o = LopheliaLarvaeDrift(loglevel=0, logfile=log_fname)
 
 # Reader for SVIM model data (thredds server):
@@ -78,14 +78,14 @@ o.set_config('general:use_auto_landmask', False)
 o.set_config('vertical_mixing:timestep', 60.) # seconds
 
 # Output file name:
-outname = '/media/vilhelm/LaCie/OpenDrift/Output/2022/seedingBeryl_tempdepdev1_tempdepws1_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.nc'
+outname = '/home/vilhelm/Data/OpenDrift/Output/seedingBeryl_tempdepdev1_tempdepws1_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_out+'.nc'
 
 # Run model:
-o.run(duration=timedelta(days=tsim), time_step=tstep, time_step_output=tstep, outfile=outname)
+o.run(duration=timedelta(days=tsim), time_step=tstep, time_step_output=tstep_out, outfile=outname)
 
 # Print and plot results:
 print(o)
 
-#o.plot()
-#o.animation()
-#o.plot_vertical_distribution()
+o.plot()
+o.animation()
+o.plot_vertical_distribution()
