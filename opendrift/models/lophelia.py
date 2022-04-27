@@ -141,28 +141,6 @@ class LopheliaLarvaeDrift(OceanDrift):
             logger.debug('No elements hit seafloor.')
             return
 
-        i = self.get_config('general:seafloor_action')
-        if i == 'lift_to_seafloor':
-            logger.debug('Lifting %s pre-competent elements to seafloor.' % sum(ind_below_prec))
-            logger.debug('Deactivating %s settled elements.' % sum(ind_below_comp))
-            self.elements.z[ind_below_prec] = -sea_floor_depth[ind_below_prec]
-            self.deactivate_elements(ind_below_comp, reason='settled')
-        elif i == 'deactivate':
-            self.deactivate_elements(self.elements.z < -sea_floor_depth,
-                                        reason='seafloor')
-            self.elements.z[ind_below] = -sea_floor_depth[ind_below]
-        elif i == 'previous':  # Go back to previous position (in water)
-            logger.warning('%s pre-competent elements hit seafloor, '
-                                 'moving back ' % sum(ind_below_prec))
-            logger.warning('%s competent elements hit seafloor, '
-                                 'deactivating ' % sum(ind_below_comp))
-            below_prec_ID = self.elements.ID[ind_below_prec]
-            self.elements.lon[ind_below_prec] = \
-                np.copy(self.previous_lon[below_prec_ID - 1])
-            self.elements.lat[ind_below_prec] = \
-                np.copy(self.previous_lat[below_prec_ID - 1])
-            self.deactivate_elements(ind_below_comp, reason='settled')
-
     # Define procedure for update of terminal velocity:
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
         """Calculate terminal velocity for larvae
