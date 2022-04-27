@@ -16,12 +16,12 @@ from opendrift.models.lophelia import LopheliaLarvaeDrift # Lophelia dispersal m
 #--------- Set parameters for simulation ---------
 
 # Set start date and time of spawning/seeding:
-ys = 2012   # Start year
-ye = 2013   # End year
-ms = 1      # Start month
+ys = 1960   # Start year
+ye = 2015   # End year
+ms = 2      # Start month
 me = 2      # End month
 ds = 1      # Start day
-de = 2      # End day
+de = 28     # End day
 hs = 12     # Hour
 mms = 0     # Minute
 
@@ -29,19 +29,19 @@ mms = 0     # Minute
 radis = 4000
 
 # Depth for seeding:
-zs = 'seafloor'
+zs = -93
 
 # Number of seeding particles at each depth:
 ns = 1000
 
 # Length of simulation [days]:
-tsim = 3
+tsim = 300
 
 # Length [s] of simulation timestep:
 tstep = 3600
 
 # Length [s] of output timestep:
-tstep_out = 24*3600
+tstep_out = 12*3600
 
 #-------------- Seeding locations ----------------
 
@@ -135,7 +135,7 @@ for yi in range(ys, ye+1):
 
                 print('Running simulation for location '+str(ind_loc)+', seeding date '+datestr_sdate)
 
-                log_fname = pth_log+'lophelia_SVIM_loc'+str(ind_loc)+'_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_sdate+'.log'
+                log_fname = pth_log+'lophelia_SVIM_loc'+str(ind_loc)+'_tempdepdev1_tempdepws1_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_sdate+'.log'
                 o = LopheliaLarvaeDrift(loglevel=0, logfile=log_fname)
 
                 # Add readers:
