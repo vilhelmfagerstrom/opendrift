@@ -163,7 +163,7 @@ class LopheliaLarvaeDrift(OceanDrift):
                 np.copy(self.previous_lat[below_prec_ID - 1])
             self.deactivate_elements(ind_below_comp, reason='settled')
 
-    # Define procedure for update of termoínal velocity:
+    # Define procedure for update of terminal velocity:
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
         """Calculate terminal velocity for larvae
         """
