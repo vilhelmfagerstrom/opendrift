@@ -54,6 +54,9 @@ class LopheliaLarvae(Lagrangian3DArray):
         ('devstage', {'dtype': np.float32,
                          'units': '',
                          'default': 0.}),
+        ('settle', {'dtype': np.int32,
+                         'units': '',
+                         'default': 0.}),                         
         ('hatched', {'dtype': np.float32,
                      'units': '',
                      'default': 0.})])
@@ -130,16 +133,36 @@ class LopheliaLarvaeDrift(OceanDrift):
     def interact_with_seafloor(self):
         """Seafloor interaction according to configuration setting"""
         if self.num_elements_active() == 0:
-                return
+            return
         if 'sea_floor_depth_below_sea_level' not in self.priority_list:
             return
         sea_floor_depth = self.sea_floor_depth()
-        ind_below = self.elements.z < -sea_floor_depth
-        ind_below_prec = (self.elements.z < -sea_floor_depth) & (self.elements.devlev < 2)
-        ind_below_comp = (self.elements.z < -sea_floor_depth) & (self.elements.devlev >= 2)
-        if sum(ind_below) == 0:
+        below = np.where(self.elements.z < -sea_floor_depth)[0]
+
+        # Update indicies for settlable larvae
+        global ind_setpot
+        ind_setpot = ((self.elements.z < -sea_floor_depth) & (self.elements.devlev >= 2)) | (self.elements.settle == 1)
+
+        if len(below) == 0:
             logger.debug('No elements hit seafloor.')
             return
+
+        i = self.get_config('general:seafloor_action')
+        if i == 'lift_to_seafloor':
+            logger.debug('Lifting %s elements to seafloor.' % len(below))
+            self.elements.z[below] = -sea_floor_depth[below]
+        elif i == 'deactivate':
+            self.deactivate_elements(self.elements.z < -sea_floor_depth,
+                                     reason='seafloor')
+            self.elements.z[below] = -sea_floor_depth[below]
+        elif i == 'previous':  # Go back to previous position (in water)
+            logger.warning('%s elements hit seafloor, '
+                           'moving back ' % len(below))
+            below_ID = self.elements.ID[below]
+            self.elements.lon[below] = \
+                np.copy(self.previous_lon[below_ID - 1])
+            self.elements.lat[below] = \
+                np.copy(self.previous_lat[below_ID - 1])
 
     # Define procedure for update of terminal velocity:
     def update_terminal_velocity(self, Tprofiles=None, Sprofiles=None, z_index=None):
@@ -202,6 +225,9 @@ class LopheliaLarvaeDrift(OceanDrift):
         elif tempdepdev == 0:            # Update temperature INDEPENDENT development level
             self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*settemp)))
             self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*np.exp(bDevst1*settemp)))
+
+        # Update potential to settle stage
+        self.elements.settle[:] = ind_setpot
 
         # Update development stage
         self.elements.devstage[(self.elements.devlev >= 1)] = 1
