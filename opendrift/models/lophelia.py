@@ -56,7 +56,7 @@ class LopheliaLarvae(Lagrangian3DArray):
                          'default': 0.}),
         ('settle', {'dtype': np.int32,
                          'units': '',
-                         'default': 0.}),                         
+                         'default': 0.}),
         ('hatched', {'dtype': np.float32,
                      'units': '',
                      'default': 0.})])
@@ -249,6 +249,5 @@ class LopheliaLarvaeDrift(OceanDrift):
             self.deactivate_elements(self.elements.devlev <= 0., reason='spawned')
 
         if self.time_step.total_seconds() > 0:
-            self.deactivate_elements((self.elements.devlev >= 2) & (self.elements.z < -self.sea_floor_depth()), reason='settled')
             self.deactivate_elements(self.elements.devlev >= devlev_tmax , reason='died')
             self.deactivate_elements((self.elements.devlev < 1)& (self.environment.sea_water_temperature <= 4) , reason='died')
