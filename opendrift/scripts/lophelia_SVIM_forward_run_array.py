@@ -156,7 +156,7 @@ o.set_config('general:use_auto_landmask', False)
 o.set_config('vertical_mixing:timestep', 60.)
 
 # Output file name:
-outname = pth_output+'lophelia_SVIM_id'+task_id+'_loc'+str(ind_loc)+'_'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_sdate+'.nc'
+outname = pth_output+'lophelia_SVIM_id{:03d}_loc{:02d}_{}.nc'.format(int(task_id),int(ind_loc),datestr_sdate)
 
 # Run:
 o.run(duration=timedelta(days=tsim), time_step=tstep, time_step_output=tstep_out, outfile=outname)
