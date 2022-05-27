@@ -139,10 +139,6 @@ class LopheliaLarvaeDrift(OceanDrift):
         sea_floor_depth = self.sea_floor_depth()
         below = np.where(self.elements.z < -sea_floor_depth)[0]
 
-        # Update indicies for settlable larvae
-        global ind_setpot
-        ind_setpot = ((self.elements.z < -sea_floor_depth) & (self.elements.devlev >= 2)) | (self.elements.settle == 1)
-
         if len(below) == 0:
             logger.debug('No elements hit seafloor.')
             return
@@ -227,7 +223,7 @@ class LopheliaLarvaeDrift(OceanDrift):
             self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*np.exp(bDevst1*settemp)))
 
         # Update potential to settle stage
-        self.elements.settle[:] = ind_setpot
+        self.elements.settle[:] = ((self.elements.z < -self.sea_floor_depth()) & (self.elements.devlev >= 2)) | (self.elements.settle == 1)
 
         # Update development stage
         self.elements.devstage[(self.elements.devlev >= 1)] = 1
@@ -236,7 +232,6 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Turbulent Mixing
         self.update_terminal_velocity()
         self.vertical_mixing()
-        #self.vertical_buoyancy()
 
         # Horizontal advection
         self.advect_ocean_current()
@@ -244,10 +239,3 @@ class LopheliaLarvaeDrift(OceanDrift):
         # Vertical advection
         if self.get_config('drift:vertical_advection') is True:
             self.vertical_advection()
-
-        if self.time_step.total_seconds() < 0:
-            self.deactivate_elements(self.elements.devlev <= 0., reason='spawned')
-
-        if self.time_step.total_seconds() > 0:
-            self.deactivate_elements(self.elements.devlev >= devlev_tmax , reason='died')
-            self.deactivate_elements((self.elements.devlev < 1)& (self.environment.sea_water_temperature <= 4) , reason='died')
