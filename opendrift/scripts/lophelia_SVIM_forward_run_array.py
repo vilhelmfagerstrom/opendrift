@@ -134,7 +134,7 @@ datestr_sdate = ts.strftime('%Y%m%d')
 print('Running simulation for location '+str(ind_loc)+', seeding date '+datestr_sdate)
 
 log_fname = pth_log+'lophelia_SVIM_loc'+str(ind_loc)+'_tempdepdev1_tempdepws1_r'+str(radis)+'_n'+str(ns)+'_t'+str(tsim)+'_'+datestr_sdate+'.log'
-o = LopheliaLarvaeDrift(loglevel=0, logfile=log_fname)
+o = LopheliaLarvaeDrift(loglevel=20, logfile=log_fname)
 
 # Add readers:
 o.add_reader([reader_SVIM_daily_agg, reader_SVIM_MLD, reader_atm_forc])
