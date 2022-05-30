@@ -139,6 +139,10 @@ class LopheliaLarvaeDrift(OceanDrift):
         sea_floor_depth = self.sea_floor_depth()
         below = np.where(self.elements.z < -sea_floor_depth)[0]
 
+        # Update indicies for settlable larvae
+        global ID_setpot
+        ID_setpot = self.elements.ID[((self.elements.z < -sea_floor_depth) & (self.elements.devlev >= 2)) | (self.elements.settle == 1)]
+
         if len(below) == 0:
             logger.debug('No elements hit seafloor.')
             return
@@ -223,7 +227,8 @@ class LopheliaLarvaeDrift(OceanDrift):
             self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*np.exp(bDevst1*settemp)))
 
         # Update potential to settle stage
-        self.elements.settle[:] = ((self.elements.z < -self.sea_floor_depth()) & (self.elements.devlev >= 2)) | (self.elements.settle == 1)
+        bol_ID_setpot = np.isin(self.elements.ID,ID_setpot)
+        self.elements.settle[:] = bol_ID_setpot.astype(int)
 
         # Update development stage
         self.elements.devstage[(self.elements.devlev >= 1)] = 1
