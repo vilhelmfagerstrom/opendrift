@@ -173,15 +173,17 @@ class LopheliaLarvaeDrift(OceanDrift):
         sday = 24*60*60 # Seconds in one day
         reftemp = 8 # Reference temperature
         t_wsmax = 14*24 # Age in hours at which maximum vertical velocity is reached at reftemp
-        t1 = 713.08*reftemp**-1.149 # Age in hours at which first cilia appear at reftemp
-        t2 = 4560.17*reftemp**-1.081 # Age in hours at which first cnidocysts appear at reftemp
+        t1 = 1056.8*np.exp(0.0907*np.log(reftemp)**2)/reftemp**1.536 # Age in hours at which first cilia appear at reftemp
+        t2 = 83283*np.exp(0.5182*np.log(reftemp)**2)/reftemp**3.565 # Age in hours at which first cnidocysts appear at reftemp
         tmax = 90*24 # Maximum age in hours at reftemp
 
         global devlev_tmax
-        devlev_tmax = 1+(tmax-t1)/t2 # Develpoment level at tmax
+        #devlev_tmax = 1+tmax/(t2-t1) # Develpoment level at tmax
+        devlev_tmax = 1+(tmax-t1)/(t2-t1) # Develpoment level at tmax
 
         # Development stage at which maximum vertical velocity is reached
-        devlev_wsmax = 1+(t_wsmax-t1)/t2
+        #devlev_wsmax = 1+t_wsmax/(t2-t1)
+        devlev_wsmax = 1+(t_wsmax-t1)/(t2-t1)
 
         # Coefficients for equations:
         aT = 0.1547
@@ -196,35 +198,38 @@ class LopheliaLarvaeDrift(OceanDrift):
         if tempdepws == 1:
             # Temperature DEPENDENT terminal velocity
             self.elements.terminal_velocity[ind_Devst0] = 0
-            self.elements.terminal_velocity[ind_Devst1_1] = 1e-3*(aT*np.exp(bT*self.environment.sea_water_temperature[ind_Devst1_1]))*(t2*(self.elements.devlev[ind_Devst1_1]-1)/(t_wsmax-t1))*np.sign(self.time_step.total_seconds())
+            self.elements.terminal_velocity[ind_Devst1_1] = 1e-3*(aT*np.exp(bT*self.environment.sea_water_temperature[ind_Devst1_1]))*((self.elements.devlev[ind_Devst1_1]-1)/(devlev_wsmax-1))*np.sign(self.time_step.total_seconds())
             self.elements.terminal_velocity[ind_Devst1_2] = 1e-3*(aT*np.exp(bT*self.environment.sea_water_temperature[ind_Devst1_2]))*np.sign(self.time_step.total_seconds())
             self.elements.terminal_velocity[ind_Devst2] = -1e-3*(aT*np.exp(bT*self.environment.sea_water_temperature[ind_Devst2]))*np.sign(self.time_step.total_seconds())
 
         elif tempdepws == 0:
             # Temperature INDEPENDENT terminal velocity
             self.elements.terminal_velocity[ind_Devst0] = 0
-            self.elements.terminal_velocity[ind_Devst1_1] = 1e-3*(aT*np.exp(bT*settemp))*(t2*(self.elements.devlev[ind_Devst1_1]-1)/(t_wsmax-t1))*np.sign(self.time_step.total_seconds())
+            self.elements.terminal_velocity[ind_Devst1_1] = 1e-3*(aT*np.exp(bT*settemp))*((self.elements.devlev[ind_Devst1_1]-1)/(devlev_wsmax-1))*np.sign(self.time_step.total_seconds())
             self.elements.terminal_velocity[ind_Devst1_2] = 1e-3*(aT*np.exp(bT*settemp))*np.sign(self.time_step.total_seconds())
             self.elements.terminal_velocity[ind_Devst2] = -1e-3*(aT*np.exp(bT*settemp))*np.sign(self.time_step.total_seconds())
 
     def update(self):
         """Update positions and properties of particles."""
 
-        # Coefficients for equations:
-        aDevst0 = 250*3600
-        bDevst0 = -0.1509
+        # Coefficients and exponents for equations:
+        aDevst0 = 1056.8*3600
+        bDevst0 = 0.0907
+        cDevst0 = 1.536
 
-        aDevst1 = 2071*3600
-        bDevst1 = -0.1637
+        aDevst1 = 83283*3600
+        bDevst1 = 0.5182
+        cDevst1 = 3.565
 
         if tempdepdev == 1:
             # Update temperature DEPENDENT development level
-            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*self.environment.sea_water_temperature[(self.elements.devstage == 0)])))
-            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*np.exp(bDevst1*self.environment.sea_water_temperature[(self.elements.devstage >= 1)])))
+            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*np.log(self.environment.sea_water_temperature[(self.elements.devstage == 0)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage == 0)])**cDevst0))
+            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/((aDevst1*np.exp(bDevst1*np.log(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**cDevst1)-(aDevst0*np.exp(bDevst0*np.log(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**cDevst0)))
 
-        elif tempdepdev == 0:            # Update temperature INDEPENDENT development level
-            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*settemp)))
-            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/(aDevst1*np.exp(bDevst1*settemp)))
+        elif tempdepdev == 0:
+            # Update temperature INDEPENDENT development level
+            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*np.log(settemp)**2)/(settemp)**cDevst0))
+            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/((aDevst1*np.exp(bDevst1*np.log(settemp)**2)/(settemp)**cDevst1)-(aDevst0*np.exp(bDevst0*np.log(settemp)**2)/(settemp)**cDevst0)))
 
         # Update potential to settle stage
         bol_ID_setpot = np.isin(self.elements.ID,ID_setpot)
