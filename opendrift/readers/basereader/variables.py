@@ -97,6 +97,8 @@ class ReaderDomain(Timeable):
     def xy2lonlat(self, x, y):
         """Calculate x,y in own projection from given lon,lat (scalars/arrays).
         """
+        x = np.atleast_1d(x)
+        y = np.atleast_1d(y)
         if self.proj.crs.is_geographic:
             if 'ob_tran' in str(self.proj4):
                 logger.debug('NB: Converting degrees to radians ' +
@@ -113,6 +115,8 @@ class ReaderDomain(Timeable):
         """
         Calculate lon,lat from given x,y (scalars/arrays) in own projection.
         """
+        lon = np.atleast_1d(lon)
+        lat = np.atleast_1d(lat)
         if 'ob_tran' in str(self.proj4):
             x, y = self.proj(lon, lat, inverse=False)
             return np.degrees(x), np.degrees(y)
@@ -395,7 +399,7 @@ class ReaderDomain(Timeable):
             return None, None, None, None, None, None
         if self.times is not None:  # Time as array, possibly with holes
             indx_before = np.max((0, bisect_left(self.times, time) - 1))
-            if self.times[indx_before + 1] == time:
+            if len(self.times) > 1 and self.times[indx_before + 1] == time:
                 # Correction needed when requested time exists in times
                 indx_before = indx_before + 1
             time_before = self.times[indx_before]
@@ -829,6 +833,7 @@ class Variables(ReaderDomain):
             :meth:`get_variables_interpolated_xy`.
 
         """
+        assert set(variables).issubset(self.variables), f"{variables} is not subset of {self.variables}"
 
         lon = self.modulate_longitude(lon)
         x, y = self.lonlat2xy(lon, lat)

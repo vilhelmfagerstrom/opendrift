@@ -1,35 +1,31 @@
-#!/bin/bash
+#!/bin/bash -f
+#$ -S /bin/bash
+#$ -l h_rt=4:00:00
+#$ -q research-el7.q
+#$ -l h_vmem=10G
+#$ -pe shmem-1 1
+#$ -t 1-644
+#$ -tc 5
+#$ -N loph10-13
+##$ -o $HOME/Lophelia_Skagerak/logs/OUT_$JOB_ID.$TASK_ID
+##$ -e $HOME/Lophelia_Skagerak/logs/ERR_$JOB_ID.$TASK_ID
+#$ -R y
+##$ -m a
 
-#----------------- Input ------------------
-# Dates for seeding:
+#year=2018  # Year/s of particle seeding
+#644
 
-ys=2012             # Year/s of particle seeding
-ms=2                # Month/s of particle seeding
-ds=($(seq 1 1 2))  # Day/s of particle seeding
-hs=12               # Hour of particle seeding
-mms=0               # Minute of particle seeding
 
-# Horizontal location for seeding:
-lats=59.545686
-lons=1.537903
+module list
 
-# Radius of seeding area [m] (uniform seeding within circular area):
-radis=4000
+conda activate opendrift
 
-# Depth for seeding:
-zs=95
+cd /home/johannesro/Lophelia_Skagerak/simulation_scripts
+python lophelia_SVIM_forward_run_array.py 2010 $SGE_TASK_ID
+python lophelia_SVIM_forward_run_array.py 2011 $SGE_TASK_ID
+python lophelia_SVIM_forward_run_array.py 2012 $SGE_TASK_ID
+python lophelia_SVIM_forward_run_array.py 2013 $SGE_TASK_ID
 
-# Number of seeding particles at each depth:
-ns=1000
+#python lophelia_SVIM_forward_run_array.py $year $SGE_TASK_ID
 
-# Length of simulation [days]:
-tsim=300
 
-#--------- Loop over seeding days ---------
-
-#for loop to run script
-for a in "${ds[@]}"
-do
-  python lophelia_SVIM_forward_run.py $ys $ms "$a" $hs $mms $lats $lons $radis $zs $ns $tsim
-  echo "Simulation for seeding on day $a done"
-done
