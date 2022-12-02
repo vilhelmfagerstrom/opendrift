@@ -223,13 +223,14 @@ class LopheliaLarvaeDrift(OceanDrift):
 
         if tempdepdev == 1:
             # Update temperature DEPENDENT development level
-            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*np.log(self.environment.sea_water_temperature[(self.elements.devstage == 0)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage == 0)])**cDevst0))
-            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/((aDevst1*np.exp(bDevst1*np.log(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**cDevst1)-(aDevst0*np.exp(bDevst0*np.log(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage >= 1)])**cDevst0)))
-
+            self.elements.devlev[(self.elements.devstage == 0) & (self.environment.sea_water_temperature > 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*np.log(self.environment.sea_water_temperature[(self.elements.devstage == 0) & (self.environment.sea_water_temperature > 0)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage == 0) & (self.environment.sea_water_temperature > 0)])**cDevst0))
+            self.elements.devlev[(self.elements.devstage >= 1) & (self.environment.sea_water_temperature > 0)] += self.time_step.total_seconds()*(1/((aDevst1*np.exp(bDevst1*np.log(self.environment.sea_water_temperature[(self.elements.devstage >= 1) & (self.environment.sea_water_temperature > 0)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage >= 1) & (self.environment.sea_water_temperature > 0)])**cDevst1)-(aDevst0*np.exp(bDevst0*np.log(self.environment.sea_water_temperature[(self.elements.devstage >= 1) & (self.environment.sea_water_temperature > 0)])**2)/(self.environment.sea_water_temperature[(self.elements.devstage >= 1) & (self.environment.sea_water_temperature > 0)])**cDevst0)))
+            self.elements.devlev[(self.environment.sea_water_temperature <= 0)] += 0
         elif tempdepdev == 0:
             # Update temperature INDEPENDENT development level
-            self.elements.devlev[(self.elements.devstage == 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*np.log(settemp)**2)/(settemp)**cDevst0))
-            self.elements.devlev[(self.elements.devstage >= 1)] += self.time_step.total_seconds()*(1/((aDevst1*np.exp(bDevst1*np.log(settemp)**2)/(settemp)**cDevst1)-(aDevst0*np.exp(bDevst0*np.log(settemp)**2)/(settemp)**cDevst0)))
+            self.elements.devlev[(self.elements.devstage == 0) & (self.environment.sea_water_temperature > 0)] += self.time_step.total_seconds()*(1/(aDevst0*np.exp(bDevst0*np.log(settemp)**2)/(settemp)**cDevst0))
+            self.elements.devlev[(self.elements.devstage >= 1) & (self.environment.sea_water_temperature > 0)] += self.time_step.total_seconds()*(1/((aDevst1*np.exp(bDevst1*np.log(settemp)**2)/(settemp)**cDevst1)-(aDevst0*np.exp(bDevst0*np.log(settemp)**2)/(settemp)**cDevst0)))
+            self.elements.devlev[(self.environment.sea_water_temperature <= 0)] += 0
 
         # Update potential to settle stage
         bol_ID_setpot = np.isin(self.elements.ID,ID_setpot)
